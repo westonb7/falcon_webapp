@@ -36,7 +36,7 @@ brew install python3
 ##  https://falcon.readthedocs.io/en/stable/user/tutorial.html
 ##  to set up the app, and for setting up virtualenv for testing.
 
-# cd path/to/dir/
+## cd path/to/dir/
 
 mkdir myFalconApp
 cd myFalconApp
@@ -64,7 +64,7 @@ pip3 install httpie
 ## With virtualenv and gunicorn, we can set up a testing environment
 ##  to make sure the app is working.
 
-# (in a new terminal)
+## (in a new terminal)
 virtualenv .venv
 source .venv/bin/activate
 gunicorn --reload myFalconApp.app
