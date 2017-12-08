@@ -104,7 +104,10 @@ class Resource(object):
 	def on_get(self, req, resp):
 
 		rep_name = req.get_param('name')
-		weights_return = reputee_calculated[rep_name]
+		if rep_name in reputee_calculated:
+			weights_return = reputee_calculated[rep_name]
+		else:
+			weights_return = {"message":"reputee not found"}
 
 		resp.body = json.dumps(weights_return, ensure_ascii=False)
 		resp.status = falcon.HTTP_200
