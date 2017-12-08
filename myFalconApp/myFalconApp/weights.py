@@ -71,19 +71,20 @@ def find_clout_confidence(reach_c, clarity_c):
 ## Define function to calculate scores and confidences for reach, clarity, and clout
 
 def calculate_scores(reputee_scores, reputee):
+	error_message = {
+		'message':'Missing reach or clarity data for this reputee'
+	}
 	if "Reach" in reputee_scores[reputee]:
 		reach_s = find_score(reputee_scores[reputee]["Reach"])
 		reach_c = find_confidence(reputee_scores[reputee]["Reach"], 0) 
 	else:
-		reach_s = 0  ## Set these values to zero so that things don't break if there's no reach data
-		reach_c = 0
+		return error_message
 
 	if "Clarity" in reputee_scores[reputee]:
 		clarity_s = find_score(reputee_scores[reputee]["Clarity"])
 		clarity_c = find_confidence(reputee_scores[reputee]["Clarity"], 1)
 	else:
-		clarity_s = 0 
-		clarity_c = 0
+		return error_message
 
 	clout_s = find_clout_score(reach_s, reach_c, clarity_s, clarity_c)
 	clout_c = find_clout_confidence(reach_c, clarity_c)
@@ -126,14 +127,7 @@ class Resource(object):
 		feature = stream_data['test']['repute']['feature']
 		value = int(stream_data['test']['repute']['value'])
 
-		## Here I'm unlcear on how exaclty non-unique rids are supposed to be handled.
-
-		## I'm making the assumption that if an rid has ever been used, future POST requests
-		##  with that rid should be completely disregarded.
-
-		## However, if rids can be re-used across different reputees, or for the same
-		##  reputee for both clarity and reach, then I would need to rewrite part of this
-		##  to account for allowing non-unique rids to be resued in certain contexts.
+		## If an rid has been used, future POST requests with that rid should be disregarded.
 		
 		if rid not in reputee_rids:
 			if reputee in reputee_scores:
@@ -144,15 +138,15 @@ class Resource(object):
 			else:
 				reputee_d = {feature : [value]}
 				reputee_scores[reputee] = reputee_d
-			reputee_rids[rid] = reputee    ## Save rids in a dict with their reputee in case I need to change this
+			reputee_rids[rid] = reputee 
 		else:
 			doc_jsn = {"message":"rid must be unique"}
 
-		## For the sake of time, I calculate the scores and confidences here 
-		##  when GET requests are recieved. This is less computationally
-		##  and memory efficient than only claculating scores
-		##  when a GET is recieved, and if speed is low-priority, this should be 
-		##  changed to only calculate values on GET request.
+		## I calculate the scores and confidences here when GET requests are recieved. 
+		##  This is to prioritize speed, and  is less computationally
+		##  and memory efficient than only claculating scores when a GET is recieved.
+		##  Without knowing exaclty how this app will be used, it's hard to say is speed
+		##  or efficiency is more important.
 
 		reputee_calculated[reputee] = calculate_scores(reputee_scores, reputee)
 

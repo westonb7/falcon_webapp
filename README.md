@@ -72,6 +72,8 @@ gunicorn --reload myFalconApp.app
 ## This will run a local version of the app that can be used for testing purposes.
 ## It would probably be best to write unit tests to make sure the app works as 
 ##  intended, but for the purposes of a small app like this, this should work fine.
+## If an error is recieved about the 'msgpack' module, either install the module,
+##  or delete the 'carts.py' file. 
 ## To test the app, commands similar to the ones below can be run on the 
 ##  command line:
 

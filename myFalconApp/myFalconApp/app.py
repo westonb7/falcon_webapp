@@ -4,11 +4,11 @@ import falcon
 ##  I used them while testing things in the Falcon tutorial.
 
 from .weights import Resource
-from .carts import Resource_c 
+## from .carts import Resource_c 
 
 api = application = falcon.API()
 
 weights = Resource()
-carts = Resource_c()
+## carts = Resource_c()
 api.add_route('/weights', weights)
-api.add_route('/carts', carts)
+## api.add_route('/carts', carts)
