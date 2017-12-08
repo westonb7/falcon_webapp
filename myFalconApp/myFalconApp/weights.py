@@ -2,6 +2,16 @@ import json
 import falcon
 from collections import defaultdict
 
+## I could have split up the code for function definitions into a 
+##  separate header file, but decided to keep the code in one main 
+##  file so that it could be reviewed more easily.
+
+## Declare dictionaries
+
+reputee_scores = {}
+reputee_rids = {}
+reputee_calculated = {}
+
 ## Define the S function described in the document:
 
 def s_function(x, a, b):
@@ -36,6 +46,7 @@ def find_confidence(conf_list, type):
 		type = 0
 	elif type == "clarity":
 		type = 1
+
 	if total > 0 and type == 0:
 		return s_function(total, 2.0, 6.0)	## Using floats to prevent python from coercing values into ints
 	elif total > 0 and type == 1:
@@ -47,7 +58,7 @@ def find_confidence(conf_list, type):
 
 def find_clout_score(reach_s, reach_c, clarity_s, clarity_c):
 	clout_s = 0.0		## Using a float to prevent integer coecion problems
-	clout_s = ((reach_s*reach_c) + (clarity_s*clarity_c) / 2.0) / 10.0
+	clout_s = (((reach_s*reach_c) + (clarity_s*clarity_c)) / 2.0) / 10.0
 	return clout_s
 
 ## This really isn't necessary, but I might as well have a function for 
@@ -56,12 +67,6 @@ def find_clout_score(reach_s, reach_c, clarity_s, clarity_c):
 
 def find_clout_confidence(reach_c, clarity_c):
 	return min(reach_c, clarity_c)
-
-## Declare dictionaries
-
-reputee_scores = {} #defaultdict(list)
-reputee_rids = {}
-reputee_calculated = {}
 
 ## Define function to calculate scores and confidences for reach, clarity, and clout
 
@@ -72,20 +77,24 @@ def calculate_scores(reputee_scores, reputee):
 	else:
 		reach_s = 0  ## Set these values to zero so that things don't break if there's no reach data
 		reach_c = 0
+
 	if "Clarity" in reputee_scores[reputee]:
 		clarity_s = find_score(reputee_scores[reputee]["Clarity"])
 		clarity_c = find_confidence(reputee_scores[reputee]["Clarity"], 1)
 	else:
 		clarity_s = 0 
 		clarity_c = 0
+
 	clout_s = find_clout_score(reach_s, reach_c, clarity_s, clarity_c)
 	clout_c = find_clout_confidence(reach_c, clarity_c)
+
 	return_obj = {
 		'reputee':reputee,
 		'clout':{ 'score':clout_s, 'confidence':clout_c },
 		'reach':{ 'score':reach_s, 'confidence':reach_c },
 		'clarity':{ 'score':clarity_s, 'confidence':clarity_c }
 	}
+
 	return return_obj
 
 class Resource(object):
@@ -93,15 +102,9 @@ class Resource(object):
 	## http localhost:8000/weights?name=foo
 
 	def on_get(self, req, resp):
-		#print (req.get_param('name'))
 
-		my_val = req.get_param('name')
-		#print(my_val)
-
-		#print(reputee_calculated)
-		#print(reputee_calculated[my_val])
-		weights_return = reputee_calculated[my_val]
-		#print(weights_return)
+		rep_name = req.get_param('name')
+		weights_return = reputee_calculated[rep_name]
 
 		resp.body = json.dumps(weights_return, ensure_ascii=False)
 		resp.status = falcon.HTTP_200
@@ -111,24 +114,23 @@ class Resource(object):
 
 	## Sample POST request:
 	## http --json POST localhost:8000/weights test:='{"reputer":"name", "reputee":"foo", "repute":{"rid":"xyz12345", "feature":"Clarity", "value":"5"}}'
-
+		doc_jsn = {"message":"POST recieved"}
 		stream_data = req.stream.read()
 		stream_data = json.loads(stream_data)
 
-		#print(stream_data['test'])
-
 		reputee = stream_data['test']['reputee']
-
 		rid = stream_data['test']['repute']['rid']
 		feature = stream_data['test']['repute']['feature']
 		value = int(stream_data['test']['repute']['value'])
 
 		## Here I'm unlcear on how exaclty non-unique rids are supposed to be handled.
+
 		## I'm making the assumption that if an rid has ever been used, future POST requests
 		##  with that rid should be completely disregarded.
+
 		## However, if rids can be re-used across different reputees, or for the same
 		##  reputee for both clarity and reach, then I would need to rewrite part of this
-		##  to account for allowing non-uniqe rids to be resued in certain contexts.
+		##  to account for allowing non-unique rids to be resued in certain contexts.
 		
 		if rid not in reputee_rids:
 			if reputee in reputee_scores:
@@ -140,18 +142,17 @@ class Resource(object):
 				reputee_d = {feature : [value]}
 				reputee_scores[reputee] = reputee_d
 			reputee_rids[rid] = reputee    ## Save rids in a dict with their reputee in case I need to change this
-		
-		## I calculate the scores and confidences here, for the sake of 
-		##  time, when GET request are recieved. This is less computationally
-		##  efficient and less memory efficient than only claculating scores
+		else:
+			doc_jsn = {"message":"rid must be unique"}
+
+		## For the sake of time, I calculate the scores and confidences here 
+		##  when GET requests are recieved. This is less computationally
+		##  and memory efficient than only claculating scores
 		##  when a GET is recieved, and if speed is low-priority, this should be 
 		##  changed to only calculate values on GET request.
 
 		reputee_calculated[reputee] = calculate_scores(reputee_scores, reputee)
-		#print(reputee_calculated)
-
-		doc_jsn = {"message":"POST recieved"}
 
 		resp.body = json.dumps(doc_jsn, ensure_ascii=False)
-		resp.status = falcon.HTTP_201
+		resp.status = falcon.HTTP_202
 
